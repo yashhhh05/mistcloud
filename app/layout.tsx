@@ -1,0 +1,32 @@
+import type { Metadata } from "next";
+import { Poppins } from "next/font/google";
+import "./globals.css";
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["100","200","300","400","500","600","700","800","900"],
+  variable: "--font-poppins",
+});
+
+export const metadata: Metadata = {
+  title: "Mist Cloud",
+  description: "The only storage solution you need",
+};
+
+export const maxDuration = 60; // Allow 60 seconds for AI model loading
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${poppins.variable} font-poppins antialiased`}
+      >
+        {children}
+      </body>
+    </html>
+  );
+}
