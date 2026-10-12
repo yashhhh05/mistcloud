@@ -1,4 +1,3 @@
-const { S3Client } = require("@aws-sdk/client-s3");
 const dotenv = require("dotenv");
 
 dotenv.config();
@@ -12,23 +11,28 @@ const isS3Configured = Boolean(
 let s3Client = null;
 
 if (isS3Configured) {
-  s3Client = new S3Client({
-    region: process.env.AWS_REGION || "us-east-1",
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    },
-  });
-  console.log("[AWS S3] S3 Client initialized successfully.");
+  try {
+    const { S3Client } = require("@aws-sdk/client-s3");
+    s3Client = new S3Client({
+      region: process.env.AWS_REGION || "us-east-1",
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+    console.log("[AWS S3] S3 Client initialized successfully.");
+  } catch (err) {
+    console.warn("[AWS S3] @aws-sdk/client-s3 not installed, using local storage fallback.");
+  }
 } else {
   console.log(
-    "[AWS S3] Credentials not fully set in .env. Falling back to local disk storage in /uploads. To use S3 on EC2, set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, and AWS_S3_BUCKET_NAME."
+    "[AWS S3] Credentials not fully set in .env. Falling back to local disk storage in /uploads."
   );
 }
 
 module.exports = {
   s3Client,
-  isS3Configured,
+  isS3Configured: Boolean(s3Client),
   bucketName: process.env.AWS_S3_BUCKET_NAME || "cloudy-storage-bucket",
   region: process.env.AWS_REGION || "us-east-1",
 };

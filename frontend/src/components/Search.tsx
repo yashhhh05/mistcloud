@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { searchFiles } from '../api/files';
-import { FileDoc } from '../types';
+import type { FileDoc } from '../types';
 import Thumbnail from './Thumbnail';
 import { formatDateTime } from '../utils';
 

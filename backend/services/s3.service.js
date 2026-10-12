@@ -1,5 +1,14 @@
-const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+let PutObjectCommand, DeleteObjectCommand, GetObjectCommand, getSignedUrl;
+try {
+  const s3 = require("@aws-sdk/client-s3");
+  PutObjectCommand = s3.PutObjectCommand;
+  DeleteObjectCommand = s3.DeleteObjectCommand;
+  GetObjectCommand = s3.GetObjectCommand;
+  getSignedUrl = require("@aws-sdk/s3-request-presigner").getSignedUrl;
+} catch (e) {
+  // S3 SDK fallback active
+}
+
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -19,7 +28,7 @@ const uploadFileToStorage = async ({ buffer, originalname, mimetype }) => {
   const fileExtension = path.extname(originalname);
   const uniqueKey = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${fileExtension}`;
 
-  if (isS3Configured && s3Client) {
+  if (isS3Configured && s3Client && PutObjectCommand) {
     const uploadParams = {
       Bucket: bucketName,
       Key: uniqueKey,
@@ -42,8 +51,7 @@ const uploadFileToStorage = async ({ buffer, originalname, mimetype }) => {
     const filePath = path.join(UPLOADS_DIR, uniqueKey);
     await fs.promises.writeFile(filePath, buffer);
 
-    const port = process.env.PORT || 5000;
-    const localUrl = `http://localhost:${port}/uploads/${uniqueKey}`;
+    const localUrl = `/uploads/${uniqueKey}`;
 
     return {
       s3Key: uniqueKey,
@@ -55,10 +63,30 @@ const uploadFileToStorage = async ({ buffer, originalname, mimetype }) => {
 };
 
 /**
+ * Generates a presigned download URL for private AWS S3 objects
+ */
+const getDownloadUrlForFile = async (s3Key, fileName) => {
+  if (isS3Configured && s3Client && GetObjectCommand && getSignedUrl) {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: s3Key,
+        ResponseContentDisposition: `attachment; filename="${encodeURIComponent(fileName)}"`,
+      });
+      return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    } catch (err) {
+      console.error("[AWS S3 Presigned URL Error]", err.message);
+      return `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
+    }
+  }
+  return `/uploads/${s3Key}`;
+};
+
+/**
  * Deletes a file from AWS S3 (or local disk fallback)
  */
 const deleteFileFromStorage = async (s3Key) => {
-  if (isS3Configured && s3Client) {
+  if (isS3Configured && s3Client && DeleteObjectCommand) {
     try {
       const deleteParams = {
         Bucket: bucketName,
@@ -86,5 +114,6 @@ const deleteFileFromStorage = async (s3Key) => {
 
 module.exports = {
   uploadFileToStorage,
+  getDownloadUrlForFile,
   deleteFileFromStorage,
 };

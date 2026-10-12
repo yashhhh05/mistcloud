@@ -1,4 +1,4 @@
-import { NavItem, SortType } from '../types';
+import type { NavItem, SortType } from '../types';
 
 export const navItems: NavItem[] = [
   {

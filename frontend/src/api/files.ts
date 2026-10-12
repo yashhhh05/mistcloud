@@ -1,5 +1,5 @@
 import apiClient from './axios';
-import { FileDoc, TotalSpace } from '../types';
+import type { FileDoc, TotalSpace } from '../types';
 
 export interface GetFilesParams {
   types?: string[];
@@ -108,6 +108,6 @@ export const searchFiles = async (query: string): Promise<FileDoc[]> => {
 
 // 8. Helper to construct download URL
 export const getDownloadUrl = (file: FileDoc): string => {
-  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const baseURL = import.meta.env.VITE_API_URL || '/api';
   return `${baseURL}/files/${file._id || file.$id}/download`;
 };

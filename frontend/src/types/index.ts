@@ -59,3 +59,6 @@ export interface SortType {
 }
 
 export type ActionType = 'rename' | 'details' | 'share' | 'download' | 'delete';
+
+export const TYPES_VERSION = '1.0.0';
+

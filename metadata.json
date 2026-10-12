@@ -1,0 +1,6 @@
+{
+  "name": "Mist Cloud",
+  "description": "The only storage solution you need - manage, store, and share your files seamlessly.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
