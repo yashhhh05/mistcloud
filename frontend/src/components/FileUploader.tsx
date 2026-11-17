@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useDropzone } from 'react-dropzone';
 import { uploadFile } from '../api/files';
 import { getFileType, convertFileToUrl, cn } from '../utils';
@@ -89,53 +90,55 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         <p className="font-semibold text-white">Upload</p>
       </button>
 
-      {uploadingFiles.length > 0 && (
-        <ul className="uploader-preview-list">
-          <h4 className="h4 text-light-100 mb-2">Uploading Files</h4>
+      {uploadingFiles.length > 0 &&
+        createPortal(
+          <ul className="uploader-preview-list">
+            <h4 className="h4 text-light-100 mb-2">Uploading Files</h4>
 
-          {uploadingFiles.map((item) => {
-            const { type, extension } = getFileType(item.file.name);
-            return (
-              <li key={item.id} className="uploader-preview-item">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <Thumbnail
-                    type={type}
-                    extension={extension}
-                    url={convertFileToUrl(item.file)}
-                    className="size-10 min-w-10"
-                  />
-                  <div className="overflow-hidden">
-                    <p className="subtitle-2 line-clamp-1 text-light-100">
-                      {item.file.name}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="h-1.5 w-28 bg-light-300 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-brand rounded-full transition-all duration-300"
-                          style={{ width: `${item.progress}%` }}
-                        />
+            {uploadingFiles.map((item) => {
+              const { type, extension } = getFileType(item.file.name);
+              return (
+                <li key={item.id} className="uploader-preview-item">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <Thumbnail
+                      type={type}
+                      extension={extension}
+                      url={convertFileToUrl(item.file)}
+                      className="size-10 min-w-10"
+                    />
+                    <div className="overflow-hidden">
+                      <p className="subtitle-2 line-clamp-1 text-light-100">
+                        {item.file.name}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="h-1.5 w-28 bg-light-300 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-brand rounded-full transition-all duration-300"
+                            style={{ width: `${item.progress}%` }}
+                          />
+                        </div>
+                        <span className="caption text-light-200">
+                          {item.progress}%
+                        </span>
                       </div>
-                      <span className="caption text-light-200">
-                        {item.progress}%
-                      </span>
                     </div>
                   </div>
-                </div>
 
-                <img
-                  src="/assets/icons/remove.svg"
-                  alt="cancel"
-                  className="h-5 w-5 cursor-pointer opacity-60 hover:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveUploading(item.id);
-                  }}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  <img
+                    src="/assets/icons/remove.svg"
+                    alt="cancel"
+                    className="h-5 w-5 cursor-pointer opacity-60 hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveUploading(item.id);
+                    }}
+                  />
+                </li>
+              );
+            })}
+          </ul>,
+          document.body
+        )}
     </div>
   );
 };

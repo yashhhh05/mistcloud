@@ -64,7 +64,13 @@ const uploadFile = async (req, res, next) => {
         });
 
         const populatedFile = await File.findById(newFile._id).populate("owner", "fullName email avatar");
-        return res.status(201).json(populatedFile.toJSON());
+        const json = populatedFile.toJSON();
+        if (isS3Configured && json.s3Key && json.bucket !== "local-storage") {
+          try {
+            json.url = await getDownloadUrlForFile(json.s3Key, json.name, "inline");
+          } catch (err) {}
+        }
+        return res.status(201).json(json);
       } catch (err) {
         console.warn("[Upload DB Error, saving to memory]:", err.message);
       }
@@ -148,9 +154,23 @@ const getFiles = async (req, res, next) => {
 
         const files = await filesQuery.exec();
 
+        const documents = await Promise.all(
+          files.map(async (f) => {
+            const json = f.toJSON();
+            if (isS3Configured && json.s3Key && json.bucket !== "local-storage") {
+              try {
+                json.url = await getDownloadUrlForFile(json.s3Key, json.name, "inline");
+              } catch (err) {
+                // keep existing url
+              }
+            }
+            return json;
+          })
+        );
+
         return res.json({
-          total: files.length,
-          documents: files.map((f) => f.toJSON()),
+          total: documents.length,
+          documents,
         });
       } catch (err) {
         console.warn("[GetFiles DB Error, using memory]:", err.message);
@@ -334,10 +354,11 @@ const getTotalSpaceUsed = async (req, res, next) => {
   }
 };
 
-// 7. Download File
+// 7. Download or Open/View File
 const downloadFile = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const isInline = req.query.inline === "true" || req.query.view === "true";
     let file = null;
 
     if (isDbConnected()) {
@@ -355,18 +376,29 @@ const downloadFile = async (req, res, next) => {
     }
 
     if (isS3Configured && file.s3Key && file.bucket !== "local-storage") {
-      const presignedUrl = await getDownloadUrlForFile(file.s3Key, file.name);
+      const presignedUrl = await getDownloadUrlForFile(
+        file.s3Key,
+        file.name,
+        isInline ? "inline" : "attachment"
+      );
       return res.redirect(presignedUrl);
     }
 
     if (file.s3Key) {
       const filePath = path.join(__dirname, "..", "uploads", file.s3Key);
       if (fs.existsSync(filePath)) {
+        if (isInline) {
+          return res.sendFile(filePath);
+        }
         return res.download(filePath, file.name);
       }
     }
 
     if (file.url && file.url.startsWith("http")) {
+      return res.redirect(file.url);
+    }
+
+    if (file.url) {
       return res.redirect(file.url);
     }
 

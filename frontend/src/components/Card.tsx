@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { FileDoc } from '../types';
 import Thumbnail from './Thumbnail';
 import { convertFileSize, formatDateTime } from '../utils';
+import { getFileViewUrl } from '../api/files';
 import ActionDropdown from './ActionDropdown';
 import { useAuth } from '../context/AuthContext';
 
@@ -31,8 +32,32 @@ export const Card: React.FC<CardProps> = ({ file, onRefresh }) => {
         (user?.fullName && ownerName === user.fullName))
   );
 
+  const handleOpenFile = (e: React.MouseEvent) => {
+    // Avoid triggering if the click came from a button or action menu
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('[data-no-card-click]')) {
+      return;
+    }
+
+    const openUrl = getFileViewUrl(file);
+    if (openUrl) {
+      window.open(openUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
-    <div className="file-card group relative">
+    <div
+      className="file-card group relative cursor-pointer select-none"
+      onClick={handleOpenFile}
+      role="button"
+      tabIndex={0}
+      title={`Click to open ${file.name}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          handleOpenFile(e as any);
+        }
+      }}
+    >
       <div className="flex justify-between items-start">
         <Thumbnail
           type={file.type}
@@ -42,7 +67,11 @@ export const Card: React.FC<CardProps> = ({ file, onRefresh }) => {
           imageClassName="size-9 sm:size-11"
         />
 
-        <div className="flex flex-col items-end justify-between gap-1">
+        <div
+          className="flex flex-col items-end justify-between gap-1"
+          data-no-card-click
+          onClick={(e) => e.stopPropagation()}
+        >
           <ActionDropdown file={file} onRefresh={onRefresh} />
           <p className="body-1 font-medium text-light-100">
             {convertFileSize(file.size)}
@@ -51,7 +80,10 @@ export const Card: React.FC<CardProps> = ({ file, onRefresh }) => {
       </div>
 
       <div className="file-card-details mt-4">
-        <p className="subtitle-2 line-clamp-1 text-light-100 font-semibold" title={file.name}>
+        <p
+          className="subtitle-2 line-clamp-1 text-light-100 font-semibold group-hover:text-brand transition-colors"
+          title={file.name}
+        >
           {file.name}
         </p>
 

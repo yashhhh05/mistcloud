@@ -65,13 +65,13 @@ const uploadFileToStorage = async ({ buffer, originalname, mimetype }) => {
 /**
  * Generates a presigned download URL for private AWS S3 objects
  */
-const getDownloadUrlForFile = async (s3Key, fileName) => {
+const getDownloadUrlForFile = async (s3Key, fileName, disposition = "attachment") => {
   if (isS3Configured && s3Client && GetObjectCommand && getSignedUrl) {
     try {
       const command = new GetObjectCommand({
         Bucket: bucketName,
         Key: s3Key,
-        ResponseContentDisposition: `attachment; filename="${encodeURIComponent(fileName)}"`,
+        ResponseContentDisposition: `${disposition}; filename="${encodeURIComponent(fileName)}"`,
       });
       return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
     } catch (err) {

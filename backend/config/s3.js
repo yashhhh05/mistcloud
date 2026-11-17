@@ -1,6 +1,7 @@
+const path = require("path");
 const dotenv = require("dotenv");
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, "..", "..", ".env") });
 
 const isS3Configured = Boolean(
   process.env.AWS_ACCESS_KEY_ID &&

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn, getFileIcon } from '../utils';
 
 interface ThumbnailProps {
@@ -17,16 +17,18 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({
   className,
 }) => {
   const isImage = type === 'image' && extension !== 'svg';
+  const [hasError, setHasError] = useState(false);
 
   return (
     <figure className={cn('thumbnail', className)}>
       <img
-        src={isImage && url ? url : getFileIcon(extension, type)}
+        src={isImage && url && !hasError ? url : getFileIcon(extension, type)}
         alt="thumbnail"
+        onError={() => setHasError(true)}
         className={cn(
           'size-8 object-contain',
           imageClassName,
-          isImage && 'thumbnail-image'
+          isImage && !hasError && 'thumbnail-image'
         )}
       />
     </figure>

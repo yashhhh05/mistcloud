@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const File = require("../models/File");
 const inMemoryStore = require("../config/inMemoryStore");
+const { isS3Configured } = require("../config/s3");
+const { getDownloadUrlForFile } = require("../services/s3.service");
 
 const isDbConnected = () => mongoose.connection && mongoose.connection.readyState === 1;
 
@@ -40,7 +42,19 @@ const searchFiles = async (req, res, next) => {
           .limit(10)
           .populate("owner", "fullName email avatar");
 
-        return res.json(files.map((f) => f.toJSON()));
+        const results = await Promise.all(
+          files.map(async (f) => {
+            const json = f.toJSON();
+            if (isS3Configured && json.s3Key && json.bucket !== "local-storage") {
+              try {
+                json.url = await getDownloadUrlForFile(json.s3Key, json.name, "inline");
+              } catch (err) {}
+            }
+            return json;
+          })
+        );
+
+        return res.json(results);
       } catch (err) {
         console.warn("[Search DB Error, falling back to memory]:", err.message);
       }

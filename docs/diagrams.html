@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mist Cloud — Architecture Diagrams</title>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --panel: #ffffff;
+    --ink: #1b1b1f;
+    --muted: #6b6b76;
+    --line: #e4e4e8;
+    --accent: #fa7275;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    padding: 22px 28px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .layout { display: grid; grid-template-columns: 250px 1fr; gap: 0; }
+  nav {
+    padding: 20px 14px;
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+    position: sticky;
+    top: 67px;
+    align-self: start;
+    max-height: calc(100vh - 67px);
+    overflow-y: auto;
+  }
+  nav h2 {
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 16px 10px 6px;
+  }
+  nav a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  nav a:hover { background: #f1f1f4; color: var(--accent); }
+  main { padding: 26px 30px 80px; max-width: 1180px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  }
+  section h2 { font-size: 16px; margin: 0 0 4px; }
+  section p.note { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .diagram { overflow-x: auto; }
+  .mermaid { display: flex; justify-content: center; }
+  #error {
+    display: none;
+    margin: 20px;
+    padding: 14px 16px;
+    border: 1px solid #f3c2c2;
+    background: #fff5f5;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #8a1f1f;
+  }
+  @media (max-width: 820px) {
+    .layout { grid-template-columns: 1fr; }
+    nav { display: none; }
+    main { padding: 16px; }
+  }
+
+  .explain {
+    margin-top: 18px;
+    padding: 14px 18px;
+    background: #fbfaf9;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: #2b2b31;
+  }
+  .explain h3 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .explain p { margin: 0 0 8px; }
+  .explain p:last-child { margin-bottom: 0; }
+  .explain ul, .explain ol { margin: 6px 0 8px 20px; padding: 0; }
+  .explain li { margin-bottom: 5px; }
+  .explain code {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 12px;
+  }
+  .explain b { color: #111; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mist Cloud — architecture diagrams</h1>
+  <p>React + Express + MongoDB + S3 · every diagram followed by a plain-language explanation</p>
+</header>
+
+<div id="error">
+  Mermaid could not load from the CDN. Open the Markdown files in <code>docs/</code> instead
+  (GitHub, VS Code Mermaid preview, or Obsidian render the same diagrams), or open this page with
+  internet access.
+</div>
+
+<div class="layout">
+  <nav>
+    <h2>Big picture</h2>
+    <a href="#d1">1. System context</a>
+    <a href="#d2">2. Runtime topology</a>
+    <a href="#d3">3. Server startup</a>
+    <a href="#d4">4. Backend layers</a>
+    <h2>Frontend</h2>
+    <a href="#d5">5. Route tree</a>
+    <a href="#d6">6. Component tree</a>
+    <a href="#d7">7. Session bootstrap</a>
+    <a href="#d8">8. Refresh after mutation</a>
+    <h2>Workflows</h2>
+    <a href="#d9">9. Sign in + OTP + JWT</a>
+    <a href="#d10">10. Upload</a>
+    <a href="#d11">11. List files</a>
+    <a href="#d12">12. Download / open</a>
+    <a href="#d13">13. File lifecycle</a>
+    <h2>Data</h2>
+    <a href="#d14">14. Metadata vs bytes</a>
+    <a href="#d15">15. ERD</a>
+    <a href="#d16">16. Who can see what</a>
+    <a href="#d17">17. Fallback modes</a>
+    <h2>All technologies</h2>
+    <a href="#d18">18. Full technology stack</a>
+    <a href="#d19">19. Upload and download journey</a>
+  </nav>
+
+  <main>
+
+    <section id="d1">
+      <h2>1. System context</h2>
+      <p class="note">Who talks to what, and which external services are optional.</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TB
+    U["User in a browser"]
+    subgraph APP["Mist Cloud"]
+        SPA["React SPA<br/>routes, auth context, upload UI"]
+        API["Express API<br/>/api/auth, /api/files, /api/search"]
+    end
+    DB[("MongoDB<br/>users + file metadata")]
+    OBJ[("AWS S3 bucket<br/>file bytes")]
+    DISK[("backend/uploads<br/>local fallback bytes")]
+    SMTP["SMTP server<br/>OTP email"]
+    U -->|"HTML, JS, CSS"| SPA
+    SPA -->|"JSON + JWT / multipart"| API
+    API -->|"Mongoose"| DB
+    API -->|"PutObject / DeleteObject"| OBJ
+    API -->|"fs.writeFile / unlink"| DISK
+    API -->|"sendMail (optional)"| SMTP
+    API -->|"302 redirect to presigned GET"| U
+    U -->|"GET file bytes directly"| OBJ
+    U -->|"GET /uploads/:key"| API
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Picture a shop. The browser is the shop front, the Express API is the back room, and three storerooms sit behind it.</p>
+<ul>
+<li><b>React app</b> — what the user sees and clicks. Every click becomes a JSON request, or a file upload.</li>
+<li><b>Express API</b> — the only part allowed into the storerooms. It checks the token, decides what is allowed, then calls a service.</li>
+<li><b>MongoDB</b> — index cards: file name, size, category, owner, share list. No file content lives here.</li>
+<li><b>S3 / backend/uploads</b> — the actual bytes of the file.</li>
+<li><b>SMTP</b> — used for one thing only: emailing the login code. Without it the code is printed in the server log.</li>
+</ul>
+<p>The interesting arrows are the download path. When S3 is active, opening a file returns a <code>302</code> redirect to a temporary signed link, so the browser fetches the bytes straight from S3 and the API never carries them. Local-disk mode has nowhere to redirect, so Express streams the file itself.</p></div></section>
+
+    <section id="d2">
+      <h2>2. Runtime topology — two entry points</h2>
+      <p class="note">The root server serves API + built SPA on :3000. The standalone backend on :5000 exists for the Vite dev proxy.</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart LR
+    subgraph A["Mode A — npm run dev / npm start (root)"]
+        A1["Browser"] --> A2["server.js :3000"]
+        A2 --> A3["/api → backend/routes"]
+        A2 --> A4["/uploads → backend/uploads"]
+        A2 --> A5["dist/ static + SPA fallback"]
+        A3 --> A6[("MongoDB or in-memory")]
+        A3 --> A7[("S3 or local disk")]
+    end
+    subgraph B["Mode B — Vite dev + standalone API"]
+        B1["Browser"] --> B2["Vite dev server :3000<br/>HMR"]
+        B2 -->|"proxy /api and /uploads"| B3["backend/server.js :5000"]
+        B3 --> B4[("MongoDB or in-memory")]
+        B3 --> B5[("S3 or local disk")]
+    end
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>There are two ways to start this project, and they behave differently.</p>
+<ul>
+<li><b>Mode A — one process.</b> <code>server.js</code> on port <code>3000</code> is the whole app: it answers <code>/api</code>, serves <code>/uploads</code>, and serves the compiled frontend from <code>dist/</code>. This is what <code>npm run dev</code> and <code>npm start</code> do, and it is closest to deployment.</li>
+<li><b>Mode B — two processes.</b> Vite runs the frontend on <code>3000</code> with hot reload, and <code>backend/server.js</code> runs the API on <code>5000</code>. Vite's proxy forwards <code>/api</code> and <code>/uploads</code>, so the browser still sees one origin.</li>
+</ul>
+<p>The catch: root <code>npm run dev</code> builds first and then starts Mode A, so editing a React file does nothing until you rebuild. It is not the hot-reload loop people expect.</p></div></section>
+
+    <section id="d3">
+      <h2>3. Server startup decision</h2>
+      <p class="note">What root <code>server.js</code> does depending on whether <code>dist/</code> exists.</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    S["startServer()"] --> Q{"does dist/ exist?"}
+    Q -- "no" --> V["import vite, createServer middlewareMode"]
+    V --> V2["app.use(vite.middlewares)"]
+    Q -- "yes" --> P["express.static(dist)"]
+    P --> P2["static public/ + frontend/public/"]
+    P2 --> P3["GET fallback (not /api, not /uploads) → dist/index.html"]
+    V2 --> L["app.listen(3000, 0.0.0.0)"]
+    P3 --> L
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>This is the first decision the server makes at boot: <i>is there a compiled frontend to serve?</i></p>
+<ul>
+<li><b><code>dist/</code> exists</b> — serve it as static files. Any URL that is not <code>/api</code> or <code>/uploads</code> returns <code>dist/index.html</code>. That is what makes client-side routing work: <code>/images</code> is not a real file, so the server hands back the app shell and React Router shows the images page.</li>
+<li><b><code>dist/</code> does not exist</b> — start Vite in middleware mode inside Express, which compiles <code>.tsx</code> on demand and adds hot reload.</li>
+</ul>
+<p>Either way the process listens on <code>0.0.0.0:3000</code>. Because <code>npm run dev</code> runs <code>vite build</code> first, the second branch is effectively dead in normal use.</p></div></section>
+
+    <section id="d4">
+      <h2>4. Backend layers</h2>
+      <p class="note">Routers → middleware → controllers → models/services → data layer, with the fallback branches.</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TB
+    REQ["HTTP request"] --> MW0["cors, express.json / urlencoded"]
+    MW0 --> R{"routes/index.js"}
+    R -->|"/auth/*"| AR["auth.routes"]
+    R -->|"/files/*"| FR["file.routes"]
+    R -->|"/search"| SR["search.routes"]
+    AR --> C1["auth.controller"]
+    FR --> AM["authMiddleware (JWT)"]
+    AM --> UM["multer.memoryStorage (upload only)"]
+    UM --> C2["file.controller"]
+    SR --> AM2["authMiddleware"]
+    AM2 --> C3["search.controller"]
+    C1 --> US["User model / in-memory users"]
+    C1 --> MS["mail.service (nodemailer)"]
+    C2 --> FS["File model / in-memory files"]
+    C2 --> SS["s3.service (put, delete, presign)"]
+    C3 --> FS
+    C3 --> SS
+    SS --> S3C["config/s3.js → S3Client or local disk"]
+    FS --> DBC["config/db.js → Mongoose or memory"]
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>A request walks down this stack like a visitor in an office building.</p>
+<ol>
+<li><b>Reception</b> (<code>cors</code>, <code>express.json</code>) decides which sites may call and unpacks the body.</li>
+<li><b>Switchboard</b> (<code>routes</code>) sends the request to the auth, file or search router.</li>
+<li><b>Security guard</b> (<code>authMiddleware</code>) verifies the JWT and loads the user. No user, no entry.</li>
+<li><b>Mailroom</b> (<code>multer</code>) exists only on upload: it catches the file and holds it in memory.</li>
+<li><b>Worker</b> (the controller) does the real job: classify, save, list, rename, delete.</li>
+<li><b>Records and warehouse</b>: metadata through a Mongoose model, bytes through <code>s3.service</code>.</li>
+</ol>
+<p>Every controller then forks: Mongo or in-memory, S3 or local disk. That fork is why each feature has two code paths.</p></div></section>
+
+    <section id="d5">
+      <h2>5. Frontend route tree</h2>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    ROOT["/ BrowserRouter"] --> PUB["Public"]
+    ROOT --> GUARD["ProtectedRoute<br/>loading spinner / redirect"]
+    ROOT --> CATCH["* → Navigate to /"]
+    PUB --> SI["/sign-in"]
+    PUB --> SU["/sign-up"]
+    GUARD --> RL["RootLayout"]
+    RL --> DASH["/ — Dashboard"]
+    RL --> FV["/:type — FilesView<br/>documents | images | media | others"]
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>The app has two zones.</p>
+<ul>
+<li><b>Public pages</b> — <code>/sign-in</code> and <code>/sign-up</code>.</li>
+<li><b>Guarded pages</b> — everything behind <code>ProtectedRoute</code>. It shows a spinner while checking the saved token, redirects to <code>/sign-in</code> if there is no session, otherwise renders the shared layout.</li>
+<li><b>Anything else</b> — an unknown URL sends you back to <code>/</code> instead of a 404.</li>
+</ul>
+<p>Inside the guarded area there are only two screens: the dashboard and one category page reused four times (<code>documents</code>, <code>images</code>, <code>media</code>, <code>others</code>). The URL segment is translated into the <code>types</code> value the API expects; any other segment means “no filter”, so it shows every file.</p></div></section>
+
+    <section id="d6">
+      <h2>6. Component tree</h2>
+      <div class="diagram"><pre class="mermaid">
+flowchart TB
+    APP["App.tsx"] --> AP["AuthProvider"]
+    AP --> RTR["Routes"]
+    RTR --> PR["ProtectedRoute"]
+    PR --> RLO["RootLayout<br/>owns refreshTrigger"]
+    RLO --> SB["Sidebar"]
+    RLO --> MN["MobileNav"]
+    RLO --> HD["Header<br/>Search + FileUploader"]
+    RLO --> OUT["Outlet context"]
+    OUT --> DASH["Dashboard"]
+    OUT --> FV["FilesView"]
+    DASH --> UC["UsageChart (SVG)"]
+    DASH --> CARD["Card"]
+    FV --> SORT["Sort (URL param)"]
+    FV --> CARD2["Card"]
+    CARD --> TH["Thumbnail"]
+    CARD --> AD["ActionDropdown<br/>rename/details/share/download/delete"]
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Read the tree top to bottom; each arrow means “renders”.</p>
+<ul>
+<li><b>App</b> wraps everything in <b>AuthProvider</b>, so any component can ask who is logged in.</li>
+<li><b>ProtectedRoute</b> is the door; <b>RootLayout</b> draws the persistent shell: sidebar, mobile drawer, header with search and upload, toasts.</li>
+<li>The shell owns one small piece of state, <code>refreshTrigger</code>, and passes it plus <code>handleRefresh</code> to the current page through the router's outlet context.</li>
+<li><b>Dashboard</b> shows usage plus the ten newest files; <b>FilesView</b> shows one category. Both use <b>Card</b>, which uses <b>Thumbnail</b> and <b>ActionDropdown</b>.</li>
+</ul>
+<p>So the shell owns <i>when to refresh</i>, pages own <i>what to fetch</i>, and cards own <i>what can be done to one file</i>.</p></div></section>
+
+    <section id="d7">
+      <h2>7. Session bootstrap</h2>
+      <p class="note">Token from localStorage → <code>/auth/me</code> → user, or logout on 401.</p>
+      <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant AC as AuthProvider
+    participant AX as Axios interceptor
+    participant API as Express API
+    B->>AC: mount App
+    AC->>AC: read token + user from localStorage
+    alt no token
+        AC->>AC: user = null, isLoading = false
+    else token present
+        AC->>AX: GET /api/auth/me
+        AX->>AX: attach Bearer token
+        AX->>API: request
+        alt 200
+            API-->>AC: user JSON
+            AC->>AC: setUser + persist
+        else 401
+            AX->>AX: clear storage, dispatch auth-unauthorized
+            AC->>AC: logout()
+        end
+    end
+    AC-->>B: ProtectedRoute renders Outlet or redirects
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Refresh the page and the app has to remember who you are.</p>
+<ol>
+<li>It reads <code>token</code> and <code>user</code> from <code>localStorage</code>.</li>
+<li>No token → signed out immediately.</li>
+<li>Token present → it calls <code>GET /api/auth/me</code> to confirm the token is still valid and get fresh user data.</li>
+<li><code>200</code> → the user is stored again and the guarded pages render, with no login screen.</li>
+<li><code>401</code> → the interceptor deletes the token and user, the context logs out, and the guard sends you to <code>/sign-in</code>.</li>
+</ol>
+<p>The same interceptor runs on every later request, so an expired token logs the user out on their next action rather than at a fixed time.</p></div></section>
+
+    <section id="d8">
+      <h2>8. Refresh after a mutation</h2>
+      <p class="note">No cache, no optimistic updates: mutate → toast → increment refreshTrigger → re-fetch.</p>
+      <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant AD as ActionDropdown / FileUploader
+    participant API as Express API
+    participant RL as RootLayout
+    participant P as Dashboard / FilesView
+    U->>AD: rename / share / delete / upload
+    AD->>API: PATCH / DELETE / POST
+    API-->>AD: result
+    AD->>AD: toast
+    AD->>RL: onRefresh → refreshTrigger + 1
+    RL->>P: new context value
+    P->>API: GET /files (+ /files/usage)
+    API-->>P: fresh documents
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>There is no cache and no optimistic update; the app simply asks again.</p>
+<ol>
+<li>The user renames, shares, deletes or uploads.</li>
+<li>The component calls the API and shows a toast.</li>
+<li>On success it bumps <code>refreshTrigger</code> in <code>RootLayout</code>.</li>
+<li>That value flows to the current page, whose effect depends on it.</li>
+<li>The page re-runs <code>GET /files</code> (and <code>/files/usage</code>) and re-renders.</li>
+</ol>
+<p>Blunt but predictable: the screen always reflects what the server just returned, at the cost of one extra round trip per change.</p></div></section>
+
+    <section id="d9">
+      <h2>9. Sign in, OTP, JWT</h2>
+      <p class="note">Password check, fixed OTP <code>123456</code>, 30-day JWT stored in localStorage.</p>
+      <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant SI as SignIn / SignUp
+    participant API as auth.controller
+    participant DB as MongoDB or memory
+    participant MAIL as nodemailer
+    participant LS as localStorage
+    U->>SI: email + password (+ fullName)
+    SI->>API: POST /auth/signup or /auth/signin
+    API->>DB: find user by email
+    API->>API: bcrypt.compare or accept "password123"
+    API->>DB: otpCode = 123456, expiry = now + 10 min
+    API->>MAIL: send OTP (failure ignored)
+    API-->>SI: accountId
+    SI->>U: open OTP modal
+    U->>SI: 6-digit code
+    SI->>API: POST /auth/verify
+    API->>DB: find by accountId, else demo user
+    API->>API: accept 123456 or stored code
+    API->>API: jwt.sign userId, 30d
+    API-->>SI: token + user
+    SI->>LS: persist token + user
+    SI->>U: navigate to /
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Login is a three-act play: password, code, badge.</p>
+<ol>
+<li>The form sends email + password (plus full name on signup).</li>
+<li>The server looks the user up; signup refuses an existing email, in-memory signin creates unknown users.</li>
+<li>It compares the password with <code>bcrypt</code>, which stores a scrambled hash, never the password itself.</li>
+<li>It stores a code with a 10-minute expiry and tries to email it; mail failure is ignored.</li>
+<li>Only <code>accountId</code> comes back, so the UI opens the code dialog.</li>
+<li><code>/auth/verify</code> accepts <code>123456</code> or the stored code, then signs a 30-day JWT.</li>
+<li>The browser saves token + user in <code>localStorage</code> and navigates to the dashboard.</li>
+</ol>
+<p>The password proves what you know, the code should prove you own the inbox, and the JWT is the wristband for 30 days. Here the code is always <code>123456</code> and its expiry is never checked, so the wristband is effectively free.</p></div></section>
+
+    <section id="d10">
+      <h2>10. Upload</h2>
+      <p class="note">Bytes: browser → multer RAM → S3/disk. Metadata: controller → Mongo/memory.</p>
+      <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant FU as FileUploader
+    participant AX as apiClient
+    participant MW as multer
+    participant FC as file.controller
+    participant ST as s3.service
+    participant OBJ as S3 or disk
+    participant DB as File model or memory
+    U->>FU: drop file
+    FU->>FU: reject > 50 MB
+    FU->>AX: POST /files/upload FormData
+    AX->>MW: multipart + Bearer
+    MW->>FC: req.file buffer
+    FC->>FC: getFileType(extension)
+    FC->>ST: uploadFileToStorage
+    alt S3 configured
+        ST->>OBJ: PutObject
+    else no credentials
+        ST->>OBJ: write backend/uploads/key
+    end
+    ST-->>FC: key + url + bucket
+    alt Mongo connected
+        FC->>DB: File.create + populate owner
+    else memory
+        FC->>DB: createFile with embedded owner
+    end
+    FC-->>AX: 201 file JSON
+    FU->>FU: refreshTrigger + 1
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Upload has two separate jobs: move the bytes, then write the index card.</p>
+<ol>
+<li>The dropzone rejects anything over 50 MB.</li>
+<li>Axios posts <code>FormData</code> with the token and reports progress.</li>
+<li><code>multer</code> keeps the whole file in RAM, not on disk.</li>
+<li>The controller reads the extension to pick a category and builds a key from timestamp + random bytes + extension — never the user's filename, which prevents collisions and path traversal.</li>
+<li>The bytes are written to S3, or to <code>backend/uploads</code> when AWS keys are absent.</li>
+<li>Only then is the metadata row written (Mongoose, or the in-memory array).</li>
+<li>The UI shows a toast and bumps <code>refreshTrigger</code>, so the list re-fetches.</li>
+</ol>
+<p>Cost: the file passes <i>through</i> the API, so a 50 MB upload occupies about 50 MB of server RAM while it is forwarded. There is no direct browser-to-S3 upload.</p></div></section>
+
+    <section id="d11">
+      <h2>11. List files</h2>
+      <p class="note">Access rule: owner id OR email in <code>users</code>. Each file gets a fresh presigned URL.</p>
+      <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant P as Dashboard / FilesView
+    participant MW as authMiddleware
+    participant FC as file.controller
+    participant DB as File model or memory
+    participant ST as s3.service
+    P->>MW: GET /files?types&searchText&sort&limit
+    MW->>MW: resolve req.user
+    MW->>FC: getFiles
+    FC->>DB: find owner = userId OR users has email
+    Note right of FC: + type $in / name regex<br/>+ sort / limit
+    DB-->>FC: documents, owner populated
+    loop each document
+        FC->>ST: presign inline (1 hour)
+    end
+    FC-->>P: total + documents
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Every page load asks one question: <i>which files may this user see?</i></p>
+<ol>
+<li>The page calls <code>GET /api/files</code> with category, search text, sort and limit.</li>
+<li>The guard resolves the user from the token.</li>
+<li>The controller keeps files where <code>owner</code> is this user <b>or</b> the share list <code>users</code> contains their email.</li>
+<li>It then applies the category filter, a case-insensitive name search, sorting and the limit.</li>
+<li>Each file gets its <code>url</code> refreshed: a new one-hour signed link in S3 mode, the stable <code>/uploads/&lt;key&gt;</code> path locally.</li>
+<li>The page receives <code>{ total, documents }</code> and renders one card per document.</li>
+</ol>
+<p>Listing, usage and search all reuse that same filter, which is why sharing behaves consistently. The cost is one signing call per file, every time.</p></div></section>
+
+    <section id="d12">
+      <h2>12. Download / open</h2>
+      <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant W as New tab
+    participant MW as authMiddleware
+    participant FC as file.controller
+    participant ST as s3.service
+    participant OBJ as S3 or disk
+    W->>MW: GET /files/:id/download?token=JWT&inline=true
+    MW->>FC: downloadFile
+    FC->>FC: find by id
+    alt S3 active
+        FC->>ST: presign GET
+        FC-->>W: 302 presigned URL
+        W->>OBJ: fetch bytes directly
+    else local disk
+        FC-->>W: sendFile or res.download
+    else plain url
+        FC-->>W: 302 to file.url
+    end
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Opening and downloading are the same endpoint with a different flag.</p>
+<ol>
+<li>The card opens <code>/api/files/:id/download?token=JWT&amp;inline=true</code> in a new tab; Download uses the same URL without <code>inline</code>.</li>
+<li>The token sits in the query string because <code>window.open</code> cannot send headers.</li>
+<li>The controller loads the metadata row — it needs the key, not the bytes.</li>
+<li><b>S3 mode:</b> sign a one-hour <code>GetObject</code> URL, set <code>Content-Disposition</code>, reply <code>302</code>; the browser downloads from S3 directly.</li>
+<li><b>Local mode:</b> Express sends the file with <code>sendFile</code> or <code>download</code>.</li>
+</ol>
+<p>The signed link is a temporary key to the warehouse: valid one hour, and not tied to the user after it is issued, so anyone holding it can fetch the file.</p></div></section>
+
+    <section id="d13">
+      <h2>13. File lifecycle</h2>
+      <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+    [*] --> Uploaded: POST /files/upload
+    Uploaded --> Listed: GET /files
+    Listed --> Shared: PATCH share
+    Shared --> Listed: share list replaced
+    Listed --> Renamed: PATCH rename
+    Renamed --> Listed: re-fetch
+    Listed --> Deleted: DELETE
+    Deleted --> [*]
+    Uploaded --> OrphanBlob: metadata write failed
+    Deleted --> OrphanBlob: blob delete failed
+    OrphanBlob --> [*]: manual cleanup
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>A file's life is short and has no undo.</p>
+<ol>
+<li><b>Uploaded</b> — bytes written, metadata saved.</li>
+<li><b>Listed</b> — appears in a list, with a fresh signed URL each time.</li>
+<li><b>Shared / renamed</b> — only the share list or display name changes; bytes and key stay.</li>
+<li><b>Deleted</b> — blob removed, then metadata removed.</li>
+<li><b>Orphan</b> — a failure between the two stores leaves bytes without a record, or a record whose blob is gone. Nothing cleans this up.</li>
+</ol>
+<p>There is no trash, no versions and no restore, so delete means gone. Only a backup outside this app can bring a file back.</p></div></section>
+
+    <section id="d14">
+      <h2>14. Metadata vs bytes</h2>
+      <p class="note">Two data planes: blobs live in S3/disk, records live in Mongo. Only records are transactional.</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TB
+    subgraph CLIENT["Browser"]
+        C1["File from input/drop"]
+        C2["FormData multipart"]
+        C3["React state FileDoc[]"]
+        C4["New tab download URL"]
+    end
+    subgraph SERVER["Express API"]
+        S1["multer memoryStorage<br/>whole file in RAM"]
+        S2["file.controller"]
+        S3["s3.service<br/>timestamp + random key"]
+        S4["MongoDB File document"]
+        S5["presign GetObject (1 h)"]
+    end
+    subgraph BLOBS["Blob storage"]
+        B1[("S3 object")]
+        B2[("backend/uploads/key")]
+    end
+    C1 --> C2 --> S1 --> S2 --> S3
+    S3 -->|bytes| B1
+    S3 -->|bytes| B2
+    S2 -->|metadata| S4
+    S4 -->|JSON + fresh URL| C3
+    C4 --> S4
+    S4 --> S5 -->|302| C4
+    C4 -->|bytes| B1
+    C4 -->|bytes via Express| B2
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Think of a parcel and its paperwork: the bytes are the parcel, the database row is the paperwork, and they travel on separate lanes.</p>
+<p><b>Upload lane.</b> Browser → API → storage (S3 or disk) → key comes back → paperwork written with that key. The key is the only bridge between the two lanes.</p>
+<p><b>Read lane.</b> Listing reads only paperwork. When bytes are needed, the API signs a temporary link and redirects; the browser collects the parcel from storage. Local mode hands it over itself.</p>
+<p>Because there are two lanes there is no single transaction across them: a failed metadata write leaves an orphan parcel, and a failed blob delete leaves a stranded one. It also explains the repeated signing — the row stores a key, not a permanent public link.</p></div></section>
+
+    <section id="d15">
+      <h2>15. Data model</h2>
+      <p class="note">Owner is a real reference; sharing is an array of email strings.</p>
+      <div class="diagram"><pre class="mermaid">
+erDiagram
+    USER ||--o{ FILE : owns
+    USER {
+        ObjectId _id PK
+        string email UK
+        string fullName
+        string avatar
+        string password
+        string otpCode
+        date otpExpiresAt
+        date createdAt
+        date updatedAt
+    }
+    FILE {
+        ObjectId _id PK
+        string name
+        string url
+        string type
+        string extension
+        number size
+        ObjectId owner FK
+        string users
+        string s3Key
+        string bucketFileId
+        string bucket
+        date createdAt
+        date updatedAt
+    }
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>There are only two tables, and one link between them.</p>
+<ul>
+<li><b>USER</b> — one row per account: unique email, name, avatar, bcrypt hash, current OTP and expiry. Password and OTP are stripped before anything reaches the browser.</li>
+<li><b>FILE</b> — one row per file: name, type, extension, size, owner, share list, and where the bytes live (<code>s3Key</code>, <code>bucket</code>).</li>
+<li>The arrow means <b>one user owns many files</b>: <code>FILE.owner</code> stores the user id, which Mongo can populate into the full user object.</li>
+<li><code>users</code> is <b>not</b> a table link — just an array of email strings. That array is the entire sharing model.</li>
+</ul>
+<p>USER is the membership desk, FILE is the item register. The register never contains the file, only directions to it.</p></div></section>
+
+    <section id="d16">
+      <h2>16. Who can see what</h2>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    R["Authenticated request"] --> Q["access filter"]
+    Q --> O["owner == user._id"]
+    Q --> S["user.email in file.users"]
+    O --> V["visible in list, usage, search"]
+    S --> V
+    V --> D{"operation"}
+    D --> L["list / usage / search / download<br/>correctly scoped"]
+    D --> M["rename / share / delete<br/>no ownership check"]
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Visibility is one rule, applied in one place.</p>
+<ul>
+<li>A file is visible if the requester <b>owns</b> it, or their <b>email is in the share list</b>.</li>
+<li>Listing, usage and search all use that rule, so all three agree.</li>
+<li>Sharing adds an email; removing it takes access away on the next request. No invitation, no notification.</li>
+<li>The owner is not automatically in the share list, which is why the rule is an OR.</li>
+</ul>
+<p>The right branch is the problem: rename, share and delete never run this rule — a valid token is enough. Visibility is enforced, modification is not.</p></div></section>
+
+    <section id="d17">
+      <h2>17. Fallback modes</h2>
+      <p class="note">Every integration fails silently to a working local substitute.</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    BOOT["node server.js"] --> DBQ{"MONGODB_URI set?"}
+    DBQ -- no --> MEM["in-memory store<br/>demo user + 5 seed files"]
+    DBQ -- yes --> TRY["mongoose.connect, 2 s timeout"]
+    TRY -- ok --> MONGO["readyState = 1"]
+    TRY -- fail --> MEM
+    BOOT --> S3Q{"AWS key + secret + bucket?"}
+    S3Q -- no --> DISK["backend/uploads"]
+    S3Q -- yes --> S3["S3Client"]
+    BOOT --> SMQ{"SMTP user + pass?"}
+    SMQ -- no --> CONSOLE["OTP printed to logs"]
+    SMQ -- yes --> SMTP["nodemailer sends mail"]
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>At boot the app checks three sockets, like a power strip with backup batteries.</p>
+<ul>
+<li><b>Database.</b> No <code>MONGODB_URI</code> → in-memory store with a demo user and five seed files. URI present → connect with a 2-second timeout; failure → memory anyway.</li>
+<li><b>Storage.</b> AWS key, secret and bucket all present → S3. Anything missing → local <code>backend/uploads</code>, served at <code>/uploads</code>.</li>
+<li><b>Mail.</b> SMTP credentials present → real email. Missing → code printed in the server log.</li>
+</ul>
+<p>Every branch is caught, so a misconfigured server still starts and looks healthy. The tells are subtle: data disappears on restart, files vanish when the machine is rebuilt, and no email ever arrives.</p></div></section>
+
+    <section id="d18">
+      <h2>18. Full technology stack</h2>
+      <p class="note">Every technology in the project, in four layers: build time (Vite + TypeScript), browser (React, Router, Tailwind, Axios, localStorage), the Express process (cors, body parsers, JWT guard, multer, controllers, libraries), and storage (Mongo or in-memory, S3 or local disk, SMTP). Solid arrows are normal calls; dashed arrows are automatic fallbacks.</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TB
+    subgraph BUILD["0 · Build time"]
+        SRC["frontend/src .tsx .ts .css"] --> VITE["Vite 8 + TypeScript"]
+        VITE --> DIST["dist/ index.html + JS + CSS"]
+    end
+    subgraph CLIENT["1 · Browser — React 19 single-page app"]
+        ROUTER["React Router 7<br/>routes + ProtectedRoute"]
+        PAGES["Pages and components<br/>Dashboard · FilesView · Card"]
+        STYLE["Tailwind CSS 4"]
+        UX["sonner toasts · react-dropzone"]
+        CTX["AuthContext<br/>user · token · isLoading"]
+        AX["Axios apiClient<br/>Bearer header · 401 handler"]
+        LS[("localStorage<br/>token + user")]
+        ROUTER --> PAGES
+        PAGES --> STYLE
+        PAGES --> UX
+        PAGES --> AX
+        AX --> CTX
+        CTX --> ROUTER
+        CTX <--> LS
+    end
+    DIST -.-> ROUTER
+    subgraph SERVER["2 · Express 5 process"]
+        CORS["cors"] --> BODY["express.json 50 MB<br/>express.urlencoded"]
+        BODY --> ROUTES["Routers<br/>/api/auth · /api/files · /api/search"]
+        ROUTES --> GUARD["authMiddleware<br/>jsonwebtoken.verify"]
+        GUARD --> MULTER["multer memoryStorage<br/>50 MB limit"]
+        MULTER --> CTRL["Controllers<br/>auth · file · search"]
+        CTRL --> LIBS["bcryptjs · jsonwebtoken · nodemailer<br/>AWS SDK + presigner · mongoose"]
+    end
+    AX --> CORS
+    subgraph DATA["3 · Data and external services"]
+        MONGO[("MongoDB<br/>users · files")]
+        MEM["inMemoryStore<br/>Map + array"]
+        S3[("AWS S3<br/>file bytes")]
+        DISK[("backend/uploads<br/>file bytes")]
+        SMTP["SMTP server<br/>OTP mail"]
+    end
+    LIBS --> MONGO
+    LIBS -.-> MEM
+    LIBS --> S3
+    LIBS -.-> DISK
+    LIBS -.-> SMTP
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p>Read the diagram as four floors of one building.</p>
+<ul>
+<li><b>Floor 0 — print shop.</b> Vite reads the TypeScript and React source and writes plain HTML, JS and CSS into <code>dist/</code>. Nothing at runtime needs Vite.</li>
+<li><b>Floor 1 — shop counter.</b> React Router picks the page, Tailwind styles it, sonner shows toasts, dropzone handles uploads. AuthContext remembers who is logged in (mirrored in localStorage), and Axios attaches the token to every call.</li>
+<li><b>Floor 2 — back office.</b> Express receives HTTP: <code>cors</code>, body parsers, then the router. <code>authMiddleware</code> verifies the JWT and loads the user before any controller runs. Controllers call bcrypt, jsonwebtoken, nodemailer, the AWS SDK or Mongoose.</li>
+<li><b>Floor 3 — storerooms.</b> Mongo keeps rows <i>about</i> files, S3 or the disk keeps the bytes, SMTP only sends mail. Dashed arrows are the local stand-ins used when configuration is missing.</li>
+</ul>
+<p>One sentence: React asks, Express decides, Mongo remembers <i>what</i>, S3 remembers <i>the bytes</i>, and S3 hands those bytes to the browser directly through a temporary link.</p></div></section>
+
+    <section id="d19">
+      <h2>19. Upload and download journey</h2>
+      <p class="note">Two user actions traced through every technology. Upload moves bytes first (browser → multer RAM → S3/disk) and writes the database row second. Download reads only the row, then either redirects the browser to a signed S3 link or streams the file from disk.</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TB
+    subgraph UP["Upload"]
+        U1["1 · FileUploader checks ≤ 50 MB"] --> U2["2 · Axios POST /files/upload<br/>FormData + Bearer"]
+        U2 --> U3["3 · Express: cors, body parser, JWT guard"]
+        U3 --> U4["4 · multer buffers file in RAM"]
+        U4 --> U5["5 · controller: extension → type"]
+        U5 --> U6["6 · s3.service: safe storage key"]
+        U6 --> U7["7 · bytes → S3 or backend/uploads"]
+        U7 --> U8["8 · Mongoose: metadata row"]
+        U8 --> U9["9 · toast + refreshTrigger → re-fetch"]
+    end
+    subgraph DOWN["Open / download"]
+        D1["1 · Card opens download URL<br/>token in query string"] --> D2["2 · guard verifies token"]
+        D2 --> D3["3 · controller loads metadata row"]
+        D3 --> D4["4a · S3: presign 1-hour GET URL"]
+        D4 --> D5["5a · browser fetches bytes from S3"]
+        D3 --> D6["4b · local disk: sendFile streams bytes"]
+    end
+      </pre></div>
+    <div class="explain"><h3>In plain words</h3><p><b>Upload</b> is a two-store operation, and the order matters. The browser checks size, Axios sends the multipart request with the token, Express parses it, the guard identifies the user, and <code>multer</code> buffers the whole file in RAM. The controller picks a category from the extension and builds a safe key. The bytes go to S3 or disk first; only then is the database row written. The response triggers a toast and a list refresh.</p>
+<p><b>Open/download</b> is shorter because it never needs the bytes in Node when S3 is active. The card opens a URL with the token in the query string (a new tab cannot send headers), the guard verifies it, and the controller loads the row to find the key. S3 mode answers with a redirect to a one-hour signed URL and the browser downloads directly; local mode streams the file through Express.</p>
+<p>That asymmetry is why the app feels fast with S3 and slower with local disk.</p></div></section>
+
+  </main>
+</div>
+
+<script type="module">
+  const blocks = [...document.querySelectorAll('pre.mermaid')];
+  const sources = blocks.map((el) => el.textContent);
+
+  try {
+    const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: {
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
+        fontSize: '14px',
+        primaryColor: '#fff1f1',
+        primaryBorderColor: '#fa7275',
+        primaryTextColor: '#1b1b1f',
+        lineColor: '#8a8a95',
+        secondaryColor: '#f1f1f4',
+        tertiaryColor: '#ffffff',
+        actorBkg: '#fff1f1',
+        actorBorder: '#fa7275',
+        noteBkgColor: '#fff8e6',
+        noteBorderColor: '#e0c26a'
+      },
+      flowchart: { curve: 'basis', htmlLabels: true, useMaxWidth: true },
+      sequence: { useMaxWidth: true, wrap: true },
+      er: { useMaxWidth: true }
+    });
+    await mermaid.run({ nodes: blocks });
+  } catch (err) {
+    console.error(err);
+    document.getElementById('error').style.display = 'block';
+  }
+</script>
+</body>
+</html>

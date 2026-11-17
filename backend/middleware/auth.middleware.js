@@ -8,15 +8,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "super_secret_cloudy_jwt_key_12345!
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    let token = null;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Access denied. No authentication token provided." });
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1]?.trim();
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
     }
 
-    const token = authHeader.split(" ")[1]?.trim();
-
     if (!token) {
-      return res.status(401).json({ error: "Access denied. Authentication token missing." });
+      return res.status(401).json({ error: "Access denied. No authentication token provided." });
     }
 
     let userId = null;

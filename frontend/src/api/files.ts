@@ -106,8 +106,25 @@ export const searchFiles = async (query: string): Promise<FileDoc[]> => {
   return response.data;
 };
 
-// 8. Helper to construct download URL
-export const getDownloadUrl = (file: FileDoc): string => {
+// 8. Helper to construct download and view URLs
+export const getFileViewUrl = (file: FileDoc): string => {
+  const token = localStorage.getItem('token');
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}&inline=true` : '?inline=true';
   const baseURL = import.meta.env.VITE_API_URL || '/api';
-  return `${baseURL}/files/${file._id || file.$id}/download`;
+  const fileId = file._id || file.$id;
+  if (fileId) {
+    return `${baseURL}/files/${fileId}/download${tokenParam}`;
+  }
+  return file.url || '';
+};
+
+export const getDownloadUrl = (file: FileDoc): string => {
+  const token = localStorage.getItem('token');
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+  const baseURL = import.meta.env.VITE_API_URL || '/api';
+  const fileId = file._id || file.$id;
+  if (fileId) {
+    return `${baseURL}/files/${fileId}/download${tokenParam}`;
+  }
+  return file.url || '';
 };
